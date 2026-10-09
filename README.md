@@ -8,11 +8,15 @@ The analyses were performed primarily in **R**, with ONT basecalling, alignment,
 ## Workflow
 
 ### Part 1: RNA-seq Differential Expression Analysis
-
+#### Section 1: Indexing, Alignment, and Counting Pipeline
+*The repository includes a shell script (.sh) to automate the RNA-seq processing workflow, including:
+- Indexing: Build the reference genome index
+- Alignment: Align sequencing reads to the reference genome
+- Counting: Quantify gene-level read counts for downstream analysis.
+*Ensure that the required tools, reference genome, and annotation files are available before running the script.
 RNA-seq count data were analyzed using **DESeq2** to identify differentially expressed genes between experimental groups.
 
-#### Analysis Steps
-
+#### Section 2:  Differential Expression Analysis Steps
 - Import raw gene count matrix
 - Perform normalization and quality control
 - Differential expression analysis using DESeq2
@@ -21,19 +25,15 @@ RNA-seq count data were analyzed using **DESeq2** to identify differentially exp
 - Summarize redundant Gene Ontology (GO) terms using RRvGo
 
 #### Software
-
 - DESeq2
 - clusterProfiler (GSEA)
 - RRvGo
 
 ---
-
 ### Part 2: Oxford Nanopore DNA Methylation Analysis
-
 Oxford Nanopore sequencing data were processed to identify differentially methylated genomic positions.
 
 #### Analysis Steps
-
 - Basecalling using Dorado
 - Read alignment using Dorado
 - Differential methylation analysis using Modkit
@@ -42,7 +42,6 @@ Oxford Nanopore sequencing data were processed to identify differentially methyl
 - Summarize enriched GO terms using RRvGo
 
 #### Software
-
 - Dorado
 - Modkit
 - clusterProfiler
@@ -50,29 +49,22 @@ Oxford Nanopore sequencing data were processed to identify differentially methyl
 - R
 
 ---
-
 ### Part 3: Correlation Between DNA Methylation and Gene Expression
-
 The relationship between DNA methylation and transcriptional activity was evaluated using Spearman's rank correlation.
 
 #### Analysis Steps
-
 - Match methylation measurements with corresponding gene expression values
 - Compute Spearman's rank correlation coefficient
 - Assess statistical significance of correlations
 
 #### Statistical Method
-
 - Spearman's rank correlation
 
 ---
-
 ### Part 4: Association Between DNA Methylation and Phenotypic Outcomes
-
 DNA methylation levels were tested for association with phenotypic variables using beta regression.
 
 #### Analysis Steps
-
 - Fit beta regression models using methylation proportions as the response variable
 - Identify significantly associated methylation sites
 - Annotate significant methylation sites to genomic features
@@ -80,7 +72,6 @@ DNA methylation levels were tested for association with phenotypic variables usi
 - Summarize enriched Gene Ontology terms using RRvGo
 
 #### Software
-
 - betareg
 - clusterProfiler
 - RRvGo
