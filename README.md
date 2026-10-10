@@ -17,6 +17,7 @@ The analyses were performed primarily in **R**, with ONT basecalling, alignment,
 RNA-seq count data were analyzed using **DESeq2** to identify differentially expressed genes between experimental groups.
 
 #### Section 2:  Differential Expression Analysis Steps
+The 02_differential_expression.R script performs the following:
 - Import raw gene count matrix
 - Perform normalization and quality control
 - Differential expression analysis using DESeq2
@@ -29,7 +30,7 @@ RNA-seq count data were analyzed using **DESeq2** to identify differentially exp
 Oxford Nanopore sequencing data were processed to identify differentially methylated genomic positions.
 
 #### Section 1: Dorado Basecalling and 5mC Detection
-The 02_dorado.slum script performs basecalling, alignment, and 5-methylcytosine (5mC) detection in the CpG context using Dorado.
+The 03A_dorado.slum script performs basecalling, alignment, and 5-methylcytosine (5mC) detection in the CpG context using Dorado.
 ##### Requirements
 Run the script from the directory containing the following files and folders:
 - dorado (Dorado binary)
@@ -42,7 +43,13 @@ Run the script from the directory containing the following files and folders:
 - Sorted BAM file for downstream analysis.
 
 #### Section 2: Differential methylation analysis
-- Differential methylation analysis using Modkit
+The 03B_modkit.slum script performs pileup generation and differential methylation analysis using Modkit.
+##### Requirements
+Run the script with the directory containing the Sorted, aligned BAM files (.bam).
+##### Output
+- Pileup file for each exposure in each generation.
+- Differential methylation results for each exposure in each generation.
+
 #### Section 3: Annotation of the methylated positions
 - Annotate methylated positions to genomic features (e.g., promoter, exon, intron, gene body)
 #### Section 4: Functional enrichment analysis
