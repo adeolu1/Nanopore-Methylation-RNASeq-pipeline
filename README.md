@@ -24,20 +24,28 @@ RNA-seq count data were analyzed using **DESeq2** to identify differentially exp
 - Perform Gene Set Enrichment Analysis (GSEA)
 - Summarize redundant Gene Ontology (GO) terms using RRvGo
 
-#### Software
-- DESeq2
-- clusterProfiler (GSEA)
-- RRvGo
-
 ---
 ### Part 2: Oxford Nanopore DNA Methylation Analysis
 Oxford Nanopore sequencing data were processed to identify differentially methylated genomic positions.
 
-#### Analysis Steps
-- Basecalling using Dorado
-- Read alignment using Dorado
+#### Section 1: Dorado Basecalling and 5mC Detection
+The 02_dorado.slum script performs basecalling, alignment, and 5-methylcytosine (5mC) detection in the CpG context using Dorado.
+##### Requirements
+Run the script from the directory containing the following files and folders:
+- dorado (Dorado binary)
+- dorado_models/ (Dorado basecalling and modification models)
+- pod5/ (input POD5 files)
+- reference.fa (reference genome in FASTA format)
+#### Output
+- Basecalled reads with 5mC modification calls in the CpG context.
+- Reads aligned to the reference genome.
+- Sorted BAM file for downstream analysis.
+
+#### Section 2: Differential methylation analysis
 - Differential methylation analysis using Modkit
+#### Section 3: Annotation of the methylated positions
 - Annotate methylated positions to genomic features (e.g., promoter, exon, intron, gene body)
+#### Section 4: Functional enrichment analysis
 - Perform functional enrichment analysis of annotated genes
 - Summarize enriched GO terms using RRvGo
 
@@ -71,11 +79,6 @@ DNA methylation levels were tested for association with phenotypic variables usi
 - Perform Over-Representation Analysis (ORA)
 - Summarize enriched Gene Ontology terms using RRvGo
 
-#### Software
-- betareg
-- clusterProfiler
-- RRvGo
-
 ---
 ## Repository Structure
 
@@ -106,28 +109,8 @@ DNA methylation levels were tested for association with phenotypic variables usi
 ├── results/
 └── README.md
 ```
----
-
-## Software Requirements
-
-### Command-line Software
-
-- Dorado
-- Modkit
-
 ### R Packages
-
-- DESeq2
-- clusterProfiler
-- RRvGo
-- betareg
-- dplyr
-- tidyr
-- data.table
-- ggplot2
-- GenomicRanges
-- AnnotationDbi
-
+- DESeq2, clusterProfiler, RRvGo, betareg, dplyr, tidyr, data.table, ggplot2, GenomicRanges, AnnotationDbi...
 ---
 
 ## Analysis Summary
