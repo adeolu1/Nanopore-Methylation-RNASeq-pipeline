@@ -26,7 +26,7 @@ The 02_differential_expression.R script performs the following:
 - Summarize redundant Gene Ontology (GO) terms using RRvGo
 
 ---
-### Part 2: Oxford Nanopore DNA Methylation Analysis
+### Part 2: Oxford Nanopore differential Methylation Analysis
 Oxford Nanopore sequencing data were processed to identify differentially methylated genomic positions.
 
 #### Section 1: Dorado Basecalling and 5mC Detection
