@@ -1,0 +1,74 @@
+#!/bin/bash -l
+#SBATCH -A projectXXX 				        ##Project's name
+#SBATCH -J EXP_MET2 					##Job's name
+#sbatch --partition=fat --constraint=3TB		##Project's partition
+#SBATCH --nodes=1					##Requested node for the job
+#SBATCH --ntasks=1					##No. of task per node
+#SBATCH --cpus-per-task=42  ##Max is 48			##No. of CPU to run tasks
+#SBATCH -t 72:00:00					##Time to run job (Max = -t 10-00:00:00)
+#SBATCH --error EXP_MET2.err				##Error file incase of an error
+#SBATCH --output EXP_MET2.out				##Output file
+
+##################################################
+##Print out some job details for reference
+echo "Job started on $(date)"
+echo "Running on node: $(hostname)"
+echo "Job ID: $SLURM_JOB_ID"
+
+#load modules
+ml SAMtools HTSlib minimap2 tabix
+###############################################
+cd .   ##i.e /DNA_mod
+#Change to the current directory that contains the dorado binary, dorado_models and pod5 folders.
+
+mkdir raw_bam
+##1. Basecall uisng the dorado basecaller (Note: Pre-installation of dorado or dorado binary file is required) 
+## Download the required dorado models and save in "dorado_models" directory
+## Note:  are in current directory
+dorado-2.0.0-linux-x64/bin/dorado basecaller sup /pod5 --min-qscore 10 --trim adapters --device "cpu" -vv --modified-bases-models /dorado_models/dna_r10.4.1_e8.2_400bps_sup@v4.2.0_5mCG_5hmCG@v2 --recursive --output-dir /raw_bam
+
+##2. Demultiplex the read into it's constituent samples
+cd /raw_bam
+dorado-2.0.0-linux-x64/bin/dorado demux --kit-name SQK-NBD114-24 --output-dir /mod_bam_dmux 
+
+################################################
+## Create additional folders from the aligned files and modkit pileup outputs
+mkdir aligned_mod001
+mkdir pileup_cpg001
+mkdir filt_bam           ##save the filter bam file here
+
+#Change directory to mod_bam_dmux folder containing basecalled modification .bam files
+cd /mod_bam_dmux 
+#3. Filter the reads by first converting each bam to sam (remove reads shorter than 200 bp, keep only reads with qs ≥ 10 and no “fail” tag)
+#save the remaining reads as a new filtered BAM file.
+for i in *.bam; do samtools view -h "$i" | \
+  awk 'BEGIN {OFS="\t"}
+    /^@/ {print; next}
+    {
+      if (length($10) < 200) next
+      qs_ok = 0
+      fn_fail = 0
+      for (f = 12; f <= NF; f++) {
+        if ($f ~ /^qs:i:/) {
+          split($f, a, ":")
+          if (a[3] >= 10) qs_ok = 1
+        }
+        if ($f ~ /^fn:Z:.*fail/) fn_fail = 1
+      }
+      if (qs_ok && !fn_fail) print
+    }' | samtools view -b -o /DNA_mod/filt_bam/filtered_"$i"
+done
+#####################################
+
+#4. Align modification bam file to the reference seq using dorado aligner and saved the output to the folder created aligned_mod001
+#(Note: Pre-installation of dorado is required) 
+#Reference seq must be downloaded and provided accordingly
+cd /filt_bam
+for i in $(ls *.bam | cut -d "." -f 1); do /dorado-2.0.0-linux-x64/bin/dorado aligner --bandwidth 500,20000 /Danio_rerio.GRCz11.dna_sm.primary_assembly.fa "$i.bam" > /DNA_mod/aligned_mod001/aligned_"$i.bam"; done
+######################################
+
+#5. Sort and index the aligned read using samtools
+cd /DNA_mod/aligned_mod001
+for i in $(ls *.bam | cut -d "." -f 1); do samtools sort -T tmp -o sorted_"$i.bam" "$i.bam" && samtools index sorted_"$i.bam"; done
+
+echo finished
