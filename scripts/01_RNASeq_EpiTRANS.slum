@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH -A ProjectXXXX 	  			        ##Project's name
-#SBATCH -J EXP_MET 					##Job's name
-#sbatch --partition=big --constraint=3TB		##Project's partition
-#SBATCH --nodes=1					##Requested node for the job
-#SBATCH --ntasks=1					##No. of task per node
-#SBATCH --cpus-per-task=42  ##Max is 48			##No. of CPU to run tasks
-#SBATCH -t 72:00:00					##Time to run job (Max = -t 10-00:00:00)
-#SBATCH --error EXP_MET.err				##Error file incase of an error
-#SBATCH --output EXP_MET.out				##Output file
+#SBATCH -A ProjectXXXX 	  			              ##Project's name
+#SBATCH -J EXP_MET 					                  ##Job's name
+#sbatch --partition=big --constraint=3TB		  ##Project's partition
+#SBATCH --nodes=1					                    ##Requested node for the job
+#SBATCH --ntasks=1					                  ##No. of task per node
+#SBATCH --cpus-per-task=42  ##Max is 48			  ##No. of CPU to run tasks
+#SBATCH -t 72:00:00					                  ##Time to run job (Max = -t 10-00:00:00)
+#SBATCH --error EXP_MET.err				            ##Error file in case of an error
+#SBATCH --output EXP_MET.out				          ##Output file
 
 ##############################################
 ##Print out some job details for reference
@@ -27,11 +27,11 @@ ml parallel
 ##cd .
 cd RNASeq  ##directory containing .fq files
 
-## if .fa or .gtf file is zipped unzip
+## If .fa or .gtf file is zipped, unzip
 gzip -dc Danio_rerio.GRCz11.dna_sm.primary_assembly.fa.gz > Danio_rerio.GRCz11.dna_sm.primary_assembly.fa
 gzip -dc Danio_rerio.GRCz11.110.gtf.gz > Danio_rerio.GRCz11.110.gtf
 
-############ Give full path else the script may give error
+############ Give full path; else, the script may give an error
 FASTA=../RNASeq/Danio_rerio.GRCz11.dna_sm.primary_assembly.fa
 GTF=../RNASeq/Danio_rerio.GRCz11.110.gtf
 INDEX=../RNASeq/INDEX
@@ -48,7 +48,7 @@ echo "STAR genome index created in: $INDEX"
 GENOME=../RNASeq/INDEX
 FASTQDIR=../RNASeq/F1_RNASeq_data
 OUTDIR=../RNASeq/F1_result
-THREADS=5 ##Use 5 threads fro each job
+THREADS=5 ##Use 5 threads for each job
 
 ##Run the star  alignment
 chmod +x 01B_RNASeq_STAR_alignment.sh   ##make the script executable first
@@ -57,7 +57,7 @@ chmod +x 01B_RNASeq_STAR_alignment.sh   ##make the script executable first
 echo "STAR alignment created in: $OUTDIR"
 ################################################
 
-##3 Count the No. of reads per genes  using HTSeq-count
+##3 Count the No. of reads per gene  using HTSeq-count
 GTF=../RNASeq/Danio_rerio.GRCz11.110.gtf
 BAMDIR=../RNASeq/F1_result
 OUTDIR=../RNASeq/F0_HTSeq_count
