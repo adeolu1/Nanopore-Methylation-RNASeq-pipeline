@@ -1,0 +1,218 @@
+#!/bin/bash -l
+#SBATCH -A ProjectXXX  				        ##Project's name
+#SBATCH -J EXP_MET3 					##Job's name
+#sbatch --partition=fat --constraint=3TB		##Project's partition
+#SBATCH --nodes=1					##Requested node for the job
+#SBATCH --ntasks=1					##No. of task per node
+#SBATCH --cpus-per-task=42  ##Max is 48			##No. of CPU to run tasks
+#SBATCH -t 72:00:00					##Time to run job (Max = -t 10-00:00:00)
+#SBATCH --error EXP_MET3.err				##Error file incase of an error
+#SBATCH --output EXP_MET3.out				##Output file
+
+##################################################
+##Print out some job details for reference
+echo "Job started on $(date)"
+echo "Running on node: $(hostname)"
+echo "Job ID: $SLURM_JOB_ID"
+
+#load modules
+ml SAMtools HTSlib minimap2 tabix
+###############################################
+##Change to the current directory that contains the aligned_mod001 folder.
+cd .   ##i.e /DNA_mod
+
+################################################
+## Create additional folder for modkit pileup outputs
+mkdir pileup_cpg001
+#1. Pileup the modified CpG using modkit (Note: Pre-installation of modkit or its binary is required) and saved to the folder created "pileup_cpg001"
+cd /DNA_mod/aligned_mod001
+for i in $(ls sorted_*.bam | cut -d "." -f 1); do /dist_modkit_v0.5.0_5120ef7/modkit pileup pileup "$i.bam" /DNA_mod/pileup_cpg001/CpG_pileup_"$i.bed" --cpg --combine-strands --ignore h --max-depth 2147483640 --header --ref /Danio_rerio.GRCz11.dna_sm.primary_assembly.fa -t 40; done
+
+#Change directory to folder containing pileup modification .bed files
+cd /DNA_mod/pileup_cpg001
+
+#2. Zip and index the .bed files using bgzip anf tabix respectively. (Pre-installation of both are required)
+for i in $(ls *.bed | cut -d "." -f 1); do bgzip -k "$i.bed"; done
+for i in $(ls *.bed.gz | cut -d "." -f 1); do tabix -p bed "$i.bed.gz"; done
+
+################################################
+##F0A. Differentail methylation between PFBSHC and controls
+cd /F0_dmc_result
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F0_PFBSHC1.bed.gz -a F0_PFBSHC2.bed.gz -a F0_PFBSHC3.bed.gz -b F0_Control1.bed.gz -b F0_Control2.bed.gz -b F0_Control3.bed.gz \ 
+-o F0_Ctrl_PFBSHC.bed --ref Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 --log-filepath dmr_F0_Ctrl_PFBSHC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F0_Ctrl_PFBSHC.bed > F0_filtered_Ctrl_PFBSHC.bed
+
+##Computes adjusted p-values from the pval column using the Benjamini–Hochberg method
+#Rscript -e 'd<-read.delim("F0_filtered_Ctrl_PFBSHC.bed",header=TRUE); d$padj<-p.adjust(d$pval,method="BH"); write.table(d,"F0_filtered_Ctrl_PFBSHC.bed",sep="\t",quote=FALSE,row.names=FALSE)'
+
+## Remove non-sig methylation
+awk 'NR==1 || $15 < 0.05' F0_filtered_Ctrl_PFBSHC.bed > F0_filteredA_Ctrl_PFBSHC.bed
+########################################
+
+##F0B. Differential methylation between PFBSLC and controls
+cd /F0_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F0_PFBSLC1.bed.gz -a F0_PFBSLC2.bed.gz -a F0_PFBSLC3.bed.gz -b F0_Control1.bed.gz -b F0_Control2.bed.gz -b F0_Control3.bed.gz \
+-o F0_Ctrl_PFBSLC.bed --ref Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F0_Ctrl_PFBSLC2.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F0_Ctrl_PFBSLC.bed > F0_filtered_Ctrl_PFBSLC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F0_filtered_Ctrl_PFBSLC.bed > F0_filteredA_Ctrl_PFBSLC.bed
+########################################
+
+##F0C. Differentail methylation between PFOSHC and controls
+cd /F0_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F0_PFOSHC1.bed.gz -a F0_PFOSHC2.bed.gz -a F0_PFOSHC1.bed.gz -b F0_Control1.bed.gz -b F0_Control2.bed.gz -b F0_Control3.bed.gz \
+-o F0_Ctrl_PFOSHC.bed --ref Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F0_Ctrl_PFOSHC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F0_Ctrl_PFOSHC.bed > F0_filtered_Ctrl_PFOSHC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F0_filtered_Ctrl_PFOSHC.bed > F0_filteredA_Ctrl_PFOSHC.bed
+########################################
+
+##F0D. Differentail methylation between PFOSLC and controls
+cd /F0_dmc_result
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F0_PFOSLC1.bed.gz -a F0_PFOSLC2.bed.gz -a F0_PFOSLC3.bed.gz -b F0_Control1.bed.gz -b F0_Control2.bed.gz -b F0_Control3.bed.gz \
+-o F0_Ctrl_PFOSLC.bed --ref Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F0_Ctrl_PFOSLC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F0_Ctrl_PFOSLC.bed > F0_filtered_Ctrl_PFOSLC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F0_filtered_Ctrl_PFOSLC.bed > F0_filteredA_Ctrl_PFOSLC.bed
+######################################
+
+##F1A. Differentail methylation between PFBSHC and controls
+cd /F1_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F1_PFBSHC1.bed.gz -a F1_PFBSHC2.bed.gz -a F1_PFBSHC3.bed.gz -b F1_Control1.bed.gz -b F1_Control2.bed.gz -b F1_Control3.bed.gz \
+-o F1_Ctrl_PFBSHC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F1_Ctrl_PFBSHC2.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F1_Ctrl_PFBSHC.bed > F1_filtered_Ctrl_PFBSHC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F1_filtered_Ctrl_PFBSHC.bed > F1_filteredA_Ctrl_PFBSHC.bed
+###################################
+
+##F1B. Differentail methylation between PFBSLC and controls
+cd /F1_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F1_PFBSLC1.bed.gz -a F1_PFBSLC2.bed.gz -a F1_PFBSLC3.bed.gz -b F1_Control1.bed.gz -b F1_Control2.bed.gz -b F1_Control3.bed.gz \
+-o F1_Ctrl_PFBSLC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F1_Ctrl_PFBSLC2.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F1_Ctrl_PFBSLC.bed > F1_filtered_Ctrl_PFBSLC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F1_filtered_Ctrl_PFBSLC.bed > F1_filteredA_Ctrl_PFBSLC.bed
+###################################
+
+##F1C. Differentail methylation between PFOSHC and controls
+cd /proj/endpoints_storage/F1_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F1_PFOSHC1.bed.gz -a F1_PFOSHC2.bed.gz -a F1_PFOSHC3.bed.gz -b F1_Control1.bed.gz -b F1_Control2.bed.gz -b F1_Control3.bed.gz \
+-o F1_Ctrl_PFOSHC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F1_Ctrl_PFOSHC2.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F1_Ctrl_PFOSHC.bed > F1_filtered_Ctrl_PFOSHC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F1_filtered_Ctrl_PFOSHC.bed > F1_filteredA_Ctrl_PFOSHC.bed
+###################################
+
+##F1D. Differentail methylation between PFOSLC and controls
+cd /F1_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F1_PFOSLC1.bed.gz -a F1_PFOSLC2.bed.gz -a F1_PFOSLC3.bed.gz -b F1_Control1.bed.gz -b F1_Control2.bed.gz -b F1_Control3.bed.gz \
+-o F1_Ctrl_PFOSLC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F1_Ctrl_PFOSLC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F1_Ctrl_PFOSLC.bed > F1_filtered_Ctrl_PFOSLC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F1_filtered_Ctrl_PFOSLC.bed > F1_filteredA_Ctrl_PFOSLC2.bed
+###################################
+
+##F2A. Differentail methylation between PFBSHC and controls
+cd /F2_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F2_PFBSHC1.bed.gz -a F2_PFBSHC2.bed.gz -a F2_PFBSHC3.bed.gz -b F2_Control1.bed.gz -b F2_Control2.bed.gz -b F2_Control3.bed.gz \
+-o F2_Ctrl_PFBSHC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F2_Ctrl_PFBSHC2.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F2_Ctrl_PFBSHC.bed > F2_filtered_Ctrl_PFBSHC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F2_filtered_Ctrl_PFBSHC.bed > F2_filteredA_Ctrl_PFBSHC.bed
+########################################
+
+##F2B. Differentail methylation between PFBSLC and controls
+cd /F2_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F2_PFBSHC1.bed.gz -a F2_PFBSHC2.bed.gz -a F2_PFBSHC3.bed.gz -b F2_Control1.bed.gz -b F2_Control2.bed.gz -b F2_Control3.bed.gz \
+-o F2_Ctrl_PFBSLC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F2_Ctrl_PFBSLC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F2_Ctrl_PFBSLC.bed > F2_filtered_Ctrl_PFBSLC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F2_filtered_Ctrl_PFBSLC.bed > F2_filteredA_Ctrl_PFBSLC.bed
+##########################################
+
+##F2C. Differentail methylation between PFOSHC and controls
+cd /proj/endpoints_storage/F2_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F2_PFOSHC1.bed.gz -a F2_PFOSHC2.bed.gz -a F2_PFOSHC3.bed.gz -b F2_Control1.bed.gz -b F2_Control2.bed.gz -b F2_Control3.bed.gz \
+-o F2_Ctrl_PFOSHC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F2_Ctrl_PFOSHC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F2_Ctrl_PFOSHC.bed > F2_filtered_Ctrl_PFOSHC.bed
+
+## Remove non-sig methyaltion
+awk 'NR==1 || $15 < 0.05' F2_filtered_Ctrl_PFOSHC.bed > F2_filteredA_Ctrl_PFOSHC.bed
+################################################
+
+##F2D. Differentail methylation between PFOSLC and controls
+cd /F2_dmc_result
+
+dist_modkit_v0.5.0_5120ef7/modkit dmr pair \
+-a F2_PFBSHC1.bed.gz -a F2_PFBSHC2.bed.gz -a F2_PFBSHC3.bed.gz -b F2_Control1.bed.gz -b F2_Control2.bed.gz -b F2_Control3.bed.gz \
+-o F2_Ctrl_PFOSLC.bed --ref /Danio_rerio.GRCz11.dna.primary_assembly.fa \
+--base C --threads 40 --min-valid-coverage 3 \
+--log-filepath dmr_F2_Ctrl_PFOSLC.log --header
+
+awk 'NR==1 || $1 ~ /^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25)$/' F2_Ctrl_PFOSLC.bed > F2_filtered_Ctrl_PFOSLC.bed
+
+## Remove non-sig methylation
+awk 'NR==1 || $15 < 0.05' F2_filtered_Ctrl_PFOSLC.bed > F2_filteredA_Ctrl_PFOSLC.bed
+
+echo finished
